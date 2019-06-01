@@ -80,7 +80,28 @@ pos2_w2 = Reshape((input_timestep,1))(dis2_w2_in)#embed_position_layer(dis2_w2_i
 
 
 #model
-info = Average()([words1_embedding,relation_embedding, words2_embedding])
+
+self_w1_att_layer = SeqSelfAttention(attention_type=SeqSelfAttention.ATTENTION_TYPE_MUL,
+								kernel_regularizer=keras.regularizers.l2(1e-4), 
+								bias_regularizer=keras.regularizers.l1(1e-4),
+								attention_regularizer_weight=1e-4, name='Attention1')
+
+self_w2_att_layer = SeqSelfAttention(attention_type=SeqSelfAttention.ATTENTION_TYPE_MUL,
+								kernel_regularizer=keras.regularizers.l2(1e-4), 
+								bias_regularizer=keras.regularizers.l1(1e-4),
+								attention_regularizer_weight=1e-4, name='Attention2')
+
+self_rel_att_layer = SeqSelfAttention(attention_type=SeqSelfAttention.ATTENTION_TYPE_MUL,
+								kernel_regularizer=keras.regularizers.l2(1e-4), 
+								bias_regularizer=keras.regularizers.l1(1e-4),
+								attention_regularizer_weight=1e-4, name='Attention3')
+								
+words1 = self_w1_att_layer(words1_embedding)
+words2 = self_w2_att_layer(words2_embedding)
+relation = self_rel_att_layer(relation_embedding)
+		
+				
+info = Average()([words1,relation, words2])
 
 info = LSTM(600)(info)
 
@@ -104,7 +125,7 @@ opt = keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 
 model.compile(loss='categorical_crossentropy',optimizer=opt, metrics=['acc'])
 
-filepath="weights_lstmbaseline.hdf5"
+filepath="weights_lstm_selfatt.hdf5"
 monitor_point = 'val_acc'
 checkpointer = ModelCheckpoint(filepath, monitor=monitor_point, verbose=1, save_best_only=True, mode='max')
 early_stop = EarlyStopping(monitor=monitor_point, patience=100)
